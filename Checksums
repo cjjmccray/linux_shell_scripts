@@ -1,0 +1,80 @@
+#!/bin/bash
+# Purpose: Nautilus Custom Action. Calculate hashes.
+# Usage: /usr/bin/checksum %f or /home/(user)/,local/share/nautilus/scripts/
+# Author: courtesy of Misko_2083 # Version: 1
+# License GPLv2
+
+## Source: https://solus-project.com/forums/viewtopic.php?t=2672
+
+## Line spacing corrected by @cjjmccray 03-Jun-2017
+## Note, this won't work with files in smb:// server folders connected
+## through Nautilus unless they are mounted in a regular folder.
+
+file="$@"
+MD5=(`echo "" | awk '{print "TRUE","MD5", $0}'`)
+SHA1=(`echo "" | awk '{print "FALSE","SHA-1", $0}'`)
+SHA256=(`echo "" | awk '{print "FALSE","SHA-256", $0}'`)
+SHA512=(`echo "" | awk '{print "FALSE","SHA-512", $0}'`)
+
+selection=$(zenity --list --radiolist --height=300 --title="Checksum" --text="File: <b>${file##*/}</b>\nPick the hash function." --column="Pick" --column="Hash" "${MD5[@]}" "${SHA1[@]}" "${SHA256[@]}" "${SHA512[@]}")
+
+#If Quit is clicked then exit
+if [ "${PIPESTATUS[0]}" -ne "0" ]; then
+  exit 0
+fi
+
+echo $selection | grep "MD5" > /dev/null
+if [ $? = 0 ]; then
+  md5sum "$file" | tee >(cut -d ' ' -f1 > /tmp/sum) |zenity --progress --title="MD5sum" --text="Calculating MD5 for:\n${file##*/}" --pulsate --auto-close
+  # If cancel is clicked then remove temporary file and exit
+  if [ "${PIPESTATUS[2]}" -ne "0" ]; then
+    rm /tmp/sum
+    exit 0
+  fi
+  sum=`cat /tmp/sum`
+  zenity --info --title="MD5sum" --text="MD5sum : $sum\nFile : ${file##*/}"
+  rm /tmp/sum
+  exit 0
+fi
+
+echo $selection | grep "SHA-1" > /dev/null
+if [ $? = 0 ]; then
+  sha1sum "$file" | tee >(cut -d ' ' -f1 > /tmp/sum) |zenity --progress --title="SHA1sum" --text="Calculating SHA1 for:\n${file##*/}" --pulsate --auto-close
+  # If cancel is clicked then remove temporary file and exit
+  if [ "${PIPESTATUS[2]}" -ne "0" ]; then
+    rm /tmp/sum
+    exit 0
+  fi
+  sum=`cat /tmp/sum`
+  zenity --info --title="SHA1sum" --text="SHA1sum : $sum\nFile : ${file##*/}"
+  rm /tmp/sum
+  exit 0
+fi
+
+echo $selection | grep "SHA-256" > /dev/null
+if [ $? = 0 ]; then
+  sha256sum "$file" | tee >(cut -d ' ' -f1 > /tmp/sum) |zenity --progress --title="SHA256sum" --text="Calculating SHA256 for:\n${file##*/}" --pulsate --auto-close
+  # If cancel is clicked then remove temporary file and exit
+  if [ "${PIPESTATUS[2]}" -ne "0" ]; then
+    rm /tmp/sum
+    exit 0
+  fi
+  sum=`cat /tmp/sum`
+  zenity --info --title="SHA256sum" --text="SHA256sum : $sum\nFile : ${file##*/}"
+  rm /tmp/sum
+  exit 0
+fi
+
+echo $selection | grep "SHA-512" > /dev/null
+if [ $? = 0 ]; then
+  sha512sum "$file" | tee >(cut -d ' ' -f1 > /tmp/sum) |zenity --progress --title="SHA512sum" --text="Calculating SHA512 for:\n${file##*/}" --pulsate --auto-close
+  # If cancel is clicked then remove temporary file and exit
+  if [ "${PIPESTATUS[2]}" -ne "0" ]; then
+    rm /tmp/sum
+    exit 0
+  fi
+  sum=`cat /tmp/sum`
+  zenity --info --title="SHA512sum" --text="SHA512sum : $sum\nFile : ${file##*/}"
+  rm /tmp/sum
+  exit 0
+fi
